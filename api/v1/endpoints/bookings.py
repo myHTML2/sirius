@@ -34,3 +34,21 @@ def read_bookings_for_room(room_id: int, date: str = None, db: Session = Depends
     return bookings
 
 
+@router.post("/", response_model=BookingRead)
+def create_new_booking(
+    booking_in: BookingCreate,
+    current_user: Annotated[User, Depends(get_current_user)],  # Защита маршрута
+    db: Session = Depends(get_db),
+):
+    try:
+        booking = create_booking(
+            db,
+            room_id=booking_in.room_id,
+            start_time=booking_in.start_time,
+            end_time=booking_in.end_time,
+            user_id=current_user.id
+        )
+        return booking
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+
