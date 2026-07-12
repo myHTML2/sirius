@@ -1,14 +1,4 @@
-module.exports = {
-  content: ['./src/**/*.{html,js,jsx,ts,tsx}', './public/index.html'],
-  theme: {
-    extend: {
-      colors: {
-        'primary': '#0f689c', // Ваш основной синий
-        'secondary': '#e57373' // Вторичный оттенок
-      }
-    },
-  },
-};
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
