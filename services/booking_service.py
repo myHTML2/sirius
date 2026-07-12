@@ -39,3 +39,21 @@ def is_booking_intersected(
         if not (new_end < b.start_time or new_start > b.end_time):
             return True  # Пересечение найдено!
     return False
+
+def create_booking(
+    db: Session,
+    room_id: int,
+    start_time: datetime,
+    end_time: datetime,
+    user_id: int | None = None, 
+    ignore_id: int | None = None
+):
+    # Проверка пересечения интервалов
+    if is_booking_intersected(db, new_start=start_time, new_end=end_time, room_id=room_id, ignore_id=ignore_id):
+        raise ValueError("Время занято")
+
+    booking = Booking(room_id=room_id, start_time=start_time, end_time=end_time, user_id=user_id)
+    db.add(booking)
+    db.commit()
+    db.refresh(booking)
+    return booking
