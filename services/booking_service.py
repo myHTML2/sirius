@@ -1,19 +1,41 @@
-from sqlalchemy import Column, Integer, String, DateTime, Enum
-from sqlalchemy.sql import func
-from enum import Enum as PyEnum
-from app.db.database import Base
+from datetime import datetime
+from typing import List, Optional
+from sqlalchemy.orm import Session
+from app.db.models.booking import Booking, BookingStatus
 
-class BookingStatus(PyEnum):
-    active = "active"
-    cancelled = "cancelled"
-    completed = "completed"
-
-class Booking(Base):
-    __tablename__ = 'bookings'
+def get_bookings_for_room(db: Session, *, room_id: int, date: Optional[str] = None) -> List[Booking]:
+    """Получает все активные бронирования комнаты."""
+    query = (
+        db.query(Booking)
+        .filter(Booking.room_id == room_id)
+        .filter(Booking.status == BookingStatus.active)
+    )
     
-    id = Column(Integer, primary_key=True, index=True)
-    room_id = Column(Integer, nullable=False)
-    start_time = Column(DateTime(timezone=True), nullable=False)
-    end_time = Column(DateTime(timezone=True), nullable=False)
-    status = Column(Enum(BookingStatus), default=BookingStatus.active, nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    if date:
+        query = query.filter(Booking.start_time >= f"{date} 00:00:00")
+        query = query.filter(Booking.end_time <= f"{date} 23:59:59")
+    
+    return query.all()
+
+
+def is_booking_intersected(
+    db: Session,
+    *,
+    new_start: datetime,
+    new_end: datetime,
+    room_id: int,
+    ignore_id: Optional[int] = None,
+) -> bool:
+
+    existing_bookings = get_bookings_for_room(db, room_id=room_id)
+
+    for b in existing_bookings:
+        # Пропускаем текущее бронирование при редактировании
+        if b.id == ignore_id:
+            continue
+
+        # Логика перекрытия интервалов
+        # https://ru.stackoverflow.com/a/476835
+        if not (new_end < b.start_time or new_start > b.end_time):
+            return True  # Пересечение найдено!
+    return False
